@@ -49,6 +49,11 @@ module OmniAuth
         options[:client_options][:site] = options[:site] if options[:site]
         super
       end
+
+      def callback_phase
+        options[:client_options][:site] = options[:site] if options[:site]
+        super
+      end
     end
   end
 end
