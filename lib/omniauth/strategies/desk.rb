@@ -1,5 +1,6 @@
 require 'omniauth-oauth'
 require 'multi_json'
+require 'uri'
 
 module OmniAuth
   module Strategies
@@ -44,6 +45,7 @@ module OmniAuth
 
       # Provide the "user" portion of the raw_info
       def user_info
+        puts raw_info
         @user_info ||= raw_info.nil? ? {} : raw_info['user']
       end
       
@@ -53,9 +55,18 @@ module OmniAuth
         options.client_options.site
       end
       
+      def uri?(uri)
+        uri = URI.parse(uri)
+        uri.scheme == 'https'
+      rescue URI::BadURIError
+        false
+      rescue URI::InvalidURIError
+        false
+      end
+      
       def validate_site(site)
         if site and site != ''
-          "https://#{site}.desk.com"
+          uri?(site) ? site : "https://#{site}.desk.com"
         end
       end
       
