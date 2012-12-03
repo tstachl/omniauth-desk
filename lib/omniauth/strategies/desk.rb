@@ -26,7 +26,8 @@ module OmniAuth
           :email       => user_info['email'],
           :user_level  => user_info['user_level'],
           :login_count => user_info['login_count'],
-          :time_zone   => user_info['time_zone']
+          :time_zone   => user_info['time_zone'],
+          :site        => session[:site]
         }
       end
             
@@ -45,7 +46,6 @@ module OmniAuth
 
       # Provide the "user" portion of the raw_info
       def user_info
-        puts raw_info
         @user_info ||= raw_info.nil? ? {} : raw_info['user']
       end
       
