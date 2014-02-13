@@ -24,9 +24,8 @@ module OmniAuth
           :name        => user_info['name'],
           :name_public => user_info['name_public'],
           :email       => user_info['email'],
-          :user_level  => user_info['user_level'],
-          :login_count => user_info['login_count'],
-          :time_zone   => user_info['time_zone'],
+          :level       => user_info['level'],
+          :avatar      => user_info['avatar'],
           :site        => session[:site]
         }
       end
@@ -39,14 +38,14 @@ module OmniAuth
 
       # Return info gathered from the verify_credentials API call 
       def raw_info
-        @raw_info ||= MultiJson.decode(access_token.get('/api/v1/account/verify_credentials.json').body) if access_token
+        @raw_info ||= MultiJson.decode(access_token.get('/api/v2/users/me').body) if access_token
       rescue ::Errno::ETIMEDOUT
         raise ::Timeout::Error
       end
 
       # Provide the "user" portion of the raw_info
       def user_info
-        @user_info ||= raw_info.nil? ? {} : raw_info['user']
+        @user_info ||= raw_info.nil? ? {} : raw_info
       end
       
       def identifier
