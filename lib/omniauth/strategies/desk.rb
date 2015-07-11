@@ -8,7 +8,7 @@ module OmniAuth
     class Desk < OmniAuth::Strategies::OAuth
       option :name, 'desk'
       option :site, nil
-      option :site_param, 'desk_site'
+      option :site_subdomain_param, 'desk_site_subdomain'
       option :client_options, {
         :authorize_path       => '/oauth/authorize',
         :request_token_path   => '/oauth/request_token',
@@ -49,29 +49,22 @@ module OmniAuth
       end
       
       def identifier
-        session[:site] = options.client_options.site = options.site || validate_site(request.params[options.site_param.to_s])
+        session[:site] = options.client_options.site = options.site || valid_site_url_from_site_subdomain(request.params[options.site_subdomain_param.to_s])
         session[:site] = options.client_options.site = nil if options.client_options.site == ''
         options.client_options.site
       end
       
-      def uri?(uri)
-        uri = URI.parse(uri)
-        uri.scheme == 'https'
-      rescue URI::BadURIError
-        false
-      rescue URI::InvalidURIError
-        false
-      end
-      
-      def validate_site(site)
-        if site and site != ''
-          uri?(site) ? site : "https://#{site}.desk.com"
+      def valid_site_url_from_site_subdomain(site_subdomain)
+        is_valid_subdomain = (/\A[a-zA-Z0-9][a-zA-Z0-9\-]*\z/ =~ site_subdomain)
+
+        if is_valid_subdomain
+          "https://#{site_subdomain}.desk.com"
         end
       end
       
       def get_identifier
         f = OmniAuth::Form.new :title => 'Desk.com Authorization'
-        f.text_field 'Desk.com Site', options.site_param.to_s
+        f.text_field 'Desk.com Site', options.site_subdomain_param.to_s
         f.html '<p><strong>Hint:</strong> https://YOURSITE.desk.com'
         f.button 'Login'
         f.to_response

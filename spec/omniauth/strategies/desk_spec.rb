@@ -24,7 +24,7 @@ describe OmniAuth::Strategies::Desk, :type => :strategy do
     end
 
     it 'should render an identifier URL input' do
-      last_response.body.should =~ %r{<input[^>]*desk_site}
+      last_response.body.should =~ %r{<input[^>]*desk_site_subdomain}
     end
   end
 
@@ -32,21 +32,9 @@ describe OmniAuth::Strategies::Desk, :type => :strategy do
     before do
       @stub_devel = stub_request(:post, "https://devel.desk.com/oauth/request_token")
                       .to_return(:status => 200, :body => 'oauth_token=&oauth_token_secret=')
-      post '/auth/desk', { :desk_site => 'devel' }
+      post '/auth/desk', { :desk_site_subdomain => 'devel' }
     end
 
-    it 'should have been requested' do
-      @stub_devel.should have_been_requested
-    end
-  end
-  
-  describe '/auth/desk with a custom site name' do
-    before do
-      @stub_devel = stub_request(:post, "https://devel.desk.com/oauth/request_token")
-                      .to_return(:status => 200, :body => 'oauth_token=&oauth_token_secret=')
-      post '/auth/desk', { :desk_site => 'https://devel.desk.com' }
-    end
-    
     it 'should have been requested' do
       @stub_devel.should have_been_requested
     end
