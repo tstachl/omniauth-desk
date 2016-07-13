@@ -57,10 +57,6 @@ module OmniAuth
       def uri?(uri)
         uri = URI.parse(uri)
         uri.scheme == 'https'
-      rescue URI::BadURIError
-        false
-      rescue URI::InvalidURIError
-        false
       end
 
       def validate_site(site)
@@ -70,19 +66,17 @@ module OmniAuth
       end
 
       def get_identifier
-        f = OmniAuth::Form.new :title => 'Desk.com Authorization'
-        f.text_field 'Desk.com Site', options.site_param.to_s
+        f = OmniAuth::Form.new title: 'Desk.com Authorization'
+        f.text_field 'Site', options.site_param.to_s
         f.html '<p><strong>Hint:</strong> https://YOURSITE.desk.com'
         f.button 'Login'
         f.to_response
       end
 
       def request_phase
-        begin
-          identifier ? super : get_identifier
-        rescue ::OAuth::Unauthorized =>err
-          fail!(:unathorized, err)
-        end
+        identifier ? super : get_identifier
+      rescue ::OAuth::Unauthorized => err
+        fail!(:unathorized, err)
       end
 
       def callback_phase
