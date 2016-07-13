@@ -15,11 +15,11 @@ module OmniAuth
         :access_token_path    => '/oauth/access_token',
       }
 
-      uid { 
+      uid {
         user_info['id']
       }
-      
-      info do 
+
+      info do
         {
           :name        => user_info['name'],
           :name_public => user_info['name_public'],
@@ -29,14 +29,14 @@ module OmniAuth
           :site        => session[:site]
         }
       end
-            
+
       extra do
         {
           :raw_info => raw_info
         }
       end
 
-      # Return info gathered from the verify_credentials API call 
+      # Return info gathered from the verify_credentials API call
       def raw_info
         @raw_info ||= MultiJson.decode(access_token.get('/api/v2/users/me').body) if access_token
       rescue ::Errno::ETIMEDOUT
@@ -47,13 +47,13 @@ module OmniAuth
       def user_info
         @user_info ||= raw_info.nil? ? {} : raw_info
       end
-      
+
       def identifier
         session[:site] = options.client_options.site = options.site || validate_site(request.params[options.site_param.to_s])
         session[:site] = options.client_options.site = nil if options.client_options.site == ''
         options.client_options.site
       end
-      
+
       def uri?(uri)
         uri = URI.parse(uri)
         uri.scheme == 'https'
@@ -62,13 +62,13 @@ module OmniAuth
       rescue URI::InvalidURIError
         false
       end
-      
+
       def validate_site(site)
         if site and site != ''
           uri?(site) ? site : "https://#{site}.desk.com"
         end
       end
-      
+
       def get_identifier
         f = OmniAuth::Form.new :title => 'Desk.com Authorization'
         f.text_field 'Desk.com Site', options.site_param.to_s
@@ -76,9 +76,13 @@ module OmniAuth
         f.button 'Login'
         f.to_response
       end
-      
+
       def request_phase
-        identifier ? super : get_identifier
+        begin
+          identifier ? super : get_identifier
+        rescue ::OAuth::Unauthorized =>err
+          fail!(:unathorized, err)
+        end
       end
 
       def callback_phase
