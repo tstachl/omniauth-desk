@@ -20,7 +20,6 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency 'omniauth', '>= 1.0'
   s.add_runtime_dependency 'omniauth-oauth', '>= 1.0'
-  s.add_runtime_dependency 'multi_json', '>= 1.3.6'
 
   s.add_development_dependency 'rspec', '~> 3.5'
   s.add_development_dependency 'rack-test'

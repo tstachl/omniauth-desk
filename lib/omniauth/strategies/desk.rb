@@ -1,5 +1,4 @@
 require 'omniauth-oauth'
-require 'multi_json'
 require 'uri'
 
 module OmniAuth
@@ -38,7 +37,7 @@ module OmniAuth
 
       # Return info gathered from the verify_credentials API call
       def raw_info
-        @raw_info ||= MultiJson.decode(access_token.get('/api/v2/users/me').body) if access_token
+        @raw_info ||= JSON.parse(access_token.get('/api/v2/users/me').body) if access_token
       rescue ::Errno::ETIMEDOUT
         raise ::Timeout::Error
       end
