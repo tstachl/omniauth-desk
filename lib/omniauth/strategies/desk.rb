@@ -7,7 +7,8 @@ module OmniAuth
     class Desk < OmniAuth::Strategies::OAuth
       option :name, 'desk'
       option :site, nil
-      option :site_param, 'desk_site'
+      option :site_param, 'site'
+      option :shared_secret, nil
       option :client_options, {
         :authorize_path       => '/oauth/authorize',
         :request_token_path   => '/oauth/request_token',
@@ -37,7 +38,11 @@ module OmniAuth
 
       # Return info gathered from the verify_credentials API call
       def raw_info
-        @raw_info ||= JSON.parse(access_token.get('/api/v2/users/me').body) if access_token
+        if access_token
+          @raw_info ||= JSON.parse(access_token.get('/api/v2/users/me').body)
+        elsif signed_request
+          @raw_info ||= decode(signed_request)
+        end
       rescue ::Errno::ETIMEDOUT
         raise ::Timeout::Error
       end
@@ -45,6 +50,25 @@ module OmniAuth
       # Provide the "user" portion of the raw_info
       def user_info
         @user_info ||= raw_info.nil? ? {} : raw_info
+      end
+
+      def decode(signed_request)
+        hash = OmniAuth::Desk::SignedRequest.decode(
+          signed_request, shared_secret: options.shared_secret
+        )['context']['user']
+
+        {
+          'id' => hash['userId'],
+          'name' => hash['fullName'],
+          'public_name' => hash['fullName'],
+          'email' => hash['email'],
+          'avatar' => hash['profileThumbnailUrl'],
+          'level' => hash['userType']
+        }
+      end
+
+      def signed_request
+        @signed_request ||= request.params['signed_request']
       end
 
       def identifier
@@ -79,8 +103,18 @@ module OmniAuth
       end
 
       def callback_phase
-        options.client_options.site = session[:site] if session[:site]
-        super
+        if signed_request.nil?
+          options.client_options.site = session[:site] if session[:site]
+          super
+        else
+          env['omniauth.auth'] = AuthHash.new({
+                                    provider: name,
+                                    uid: uid,
+                                    info: info,
+                                    extra: extra
+                                  })
+          call_app!
+        end
       end
     end
   end

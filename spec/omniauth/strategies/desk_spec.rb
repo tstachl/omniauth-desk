@@ -2,10 +2,9 @@ require 'spec_helper'
 
 describe OmniAuth::Strategies::Desk, :type => :strategy do
   def app
-    strat = OmniAuth::Strategies::Desk
-    Rack::Builder.new {
-      use Rack::Session::Cookie, :secret => "MY_SECRET"
-      use strat
+    @app ||= Rack::Builder.new {
+      use Rack::Session::Cookie, secret: "MY_SECRET"
+      use OmniAuth::Strategies::Desk, shared_secret: SecureRandom.uuid.gsub('-', '')
       run lambda {|env| [404, {'Content-Type' => 'text/plain'}, [nil || env.key?('omniauth.auth').to_s]] }
     }.to_app
   end
@@ -24,7 +23,7 @@ describe OmniAuth::Strategies::Desk, :type => :strategy do
     end
 
     it 'should render an identifier URL input' do
-      expect(last_response.body).to match(/<input[^>]*desk_site/)
+      expect(last_response.body).to match(/<input[^>]*site/)
     end
   end
 
@@ -32,7 +31,7 @@ describe OmniAuth::Strategies::Desk, :type => :strategy do
     before do
       @stub_devel = stub_request(:post, "https://devel.desk.com/oauth/request_token")
                       .to_return(status: 200, body: 'oauth_token=&oauth_token_secret=')
-      post '/auth/desk', desk_site: 'devel'
+      post '/auth/desk', site: 'devel'
     end
 
     it 'should have been requested' do
@@ -44,7 +43,7 @@ describe OmniAuth::Strategies::Desk, :type => :strategy do
     before do
       @stub_devel = stub_request(:post, "https://devel.desk.com/oauth/request_token")
                       .to_return(status: 200, body: 'oauth_token=&oauth_token_secret=')
-      post '/auth/desk', desk_site: 'https://devel.desk.com'
+      post '/auth/desk', site: 'https://devel.desk.com'
     end
 
     it 'should have been requested' do
@@ -58,7 +57,7 @@ describe OmniAuth::Strategies::Desk, :type => :strategy do
         stub_request(:post, "https://devel.desk.com/oauth/request_token")
           .to_return(status: 200, body: 'oauth_token=&oauth_token_secret=')
 
-        post '/auth/desk', desk_site: 'https://devel.desk.com'
+        post '/auth/desk', site: 'https://devel.desk.com'
 
         @access_token = stub_request(:post, "https://devel.desk.com/oauth/access_token")
                           .to_return(status: 200, body: "oauth_token=6253282-eWudHldSbIaelX7swmsiHImEL4KinwaGloHANdrY&oauth_token_secret=2EEfA6BG3ly3sR3RjE0IBSnlQu4ZrUzPiYKmrkVU&user_id=6253282&screen_name=twitterapi")
@@ -78,6 +77,36 @@ describe OmniAuth::Strategies::Desk, :type => :strategy do
       end
     end
 
+    context 'signed request' do
+      before do
+        signed_request = OmniAuth::Desk::SignedRequest.encode({
+          "currentTime": Time.now.iso8601,
+          "expiresAt": (Time.now+3600).iso8601,
+          "algorithm": "HMACSHA256",
+          "userId": "1",
+          "context": {
+            "user": {
+              "userId": "1",
+              "userName": "agent@desk.com",
+              "email": "agent@desk.com",
+              "fullName": "Joe Agent",
+              "locale": "en_us",
+              "language": "en_us",
+              "timeZone": "Pacific Time (US & Canada)",
+              "roleId": 60,
+              "userType": "agent",
+              "profileThumbnailUrl": "http://www.gravatar.com/avatar/8a4e3154a0f99458dd1f382e72174198?default=mm&rating=PG&size=50"
+            }
+          }
+        }, shared_secret: app.instance_variable_get(:@app).options.shared_secret)
+        post '/auth/desk/callback', signed_request: signed_request
+      end
+
+      it 'should set omniauth.auth' do
+        expect(last_request.env['omniauth.auth']).not_to be_nil
+      end
+    end
+
     context 'unsuccessful' do
       before do
         get '/auth/desk/callback'
@@ -94,7 +123,7 @@ describe OmniAuth::Strategies::Desk, :type => :strategy do
     before do
       stub_request(:post, "https://thisdoesnotexist.desk.com/oauth/request_token")
         .to_return(status: 403, body: 'oauth_token=&oauth_token_secret=')
-      post '/auth/desk', desk_site: 'https://thisdoesnotexist.desk.com'
+      post '/auth/desk', site: 'https://thisdoesnotexist.desk.com'
     end
 
     it 'should be redirected to failure' do
