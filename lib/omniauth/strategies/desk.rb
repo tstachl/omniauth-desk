@@ -39,7 +39,7 @@ module OmniAuth
       # Return info gathered from the verify_credentials API call
       def raw_info
         if access_token
-          @raw_info ||= JSON.parse(access_token.get('/api/v2/users/me').body)
+          @raw_info ||= ::JSON.parse(access_token.get('/api/v2/users/me').body)
         elsif signed_request
           @raw_info ||= decode(signed_request)
         end
@@ -78,7 +78,7 @@ module OmniAuth
       end
 
       def uri?(uri)
-        uri = URI.parse(uri)
+        uri = ::URI.parse(uri)
         uri.scheme == 'https'
       end
 
