@@ -1,5 +1,6 @@
 require 'omniauth-oauth'
 require 'uri'
+require 'json'
 
 module OmniAuth
   module Strategies
